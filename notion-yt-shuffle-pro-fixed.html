@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>YouTube Playlist — Shuffle Pro (Fixed ID)</title>
+  <style>
+    :root { --bg:#000; --coverH:240px; }
+    html,body{margin:0;padding:0;height:100%;background:var(--bg);}
+    .cover{position:relative;height:var(--coverH);background-size:cover;background-position:center;display:flex;align-items:center;justify-content:center;}
+    .cover::after{content:"";position:absolute;inset:0;background:linear-gradient(to bottom,rgba(0,0,0,0.25),rgba(0,0,0,0.65));}
+    .cover h1{position:relative;z-index:1;color:#fff;font-size:clamp(18px,4vw,32px);
+      font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Noto Sans KR","Apple SD Gothic Neo",sans-serif;
+      text-shadow:0 2px 10px rgba(0,0,0,0.4);margin:0;padding:0 12px;text-align:center;}
+    #frameWrap{height:calc(100vh - var(--coverH));}
+    #player{width:100%;height:100%;border:0;}
+    @media (max-width:640px){ :root{ --coverH:200px; } }
+    .badge{position:absolute;right:10px;bottom:8px;z-index:2;color:#cbd5e1;font-size:12px;opacity:.8;}
+  </style>
+</head>
+<body>
+  <div class="cover" id="cover">
+    <h1 id="title"></h1>
+    <div class="badge">Shuffle Pro (Fixed)</div>
+  </div>
+  <div id="frameWrap"><div id="player"></div></div>
+
+  <script>
+  // Hardcoded playlist ID (no ?list= needed)
+  const LIST_ID = "PLnFUOWlSpN_i-z2lMeFlo4rvYzlS4g6it";
+
+  // Optional UI params via URL
+  const qs     = new URLSearchParams(location.search);
+  const apiKey = qs.get('key')  || ''; // optional
+  const bg     = qs.get('bg');
+  const title  = qs.get('title') || '';
+  const cover  = qs.get('cover');
+  const hQuery = qs.get('h') || qs.get('coverH');
+  const autoplay = qs.get('autoplay') === '0' ? 0 : 1;
+  const muted    = qs.get('mute') === '0' ? 0 : 1;
+
+  if (bg)    document.documentElement.style.setProperty('--bg', '#' + bg.replace('#',''));
+  if (title) document.getElementById('title').textContent = title;
+  if (cover) document.getElementById('cover').style.backgroundImage = `url(${cover})`;
+  if (hQuery){
+    const v = (''+hQuery).trim();
+    const val = /vh|px$/.test(v) ? v : `${parseInt(v,10)||240}px`;
+    document.documentElement.style.setProperty('--coverH', val);
+  }
+
+  const tag = document.createElement('script');
+  tag.src = "https://www.youtube.com/iframe_api";
+  document.head.appendChild(tag);
+
+  let player, shuffled = [], pos = 0;
+
+  function shuffleArray(a){
+    for(let i=a.length-1;i>0;i--){ const j = Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; }
+    return a;
+  }
+
+  async function fetchAllVideoIds(playlistId, key){
+    const ids = [];
+    let pageToken = '';
+    const base = 'https://www.googleapis.com/youtube/v3/playlistItems';
+    for (let guard=0; guard<50; guard++){
+      const url = new URL(base);
+      url.searchParams.set('part','contentDetails');
+      url.searchParams.set('playlistId', playlistId);
+      url.searchParams.set('maxResults','50');
+      if (pageToken) url.searchParams.set('pageToken', pageToken);
+      if (key) url.searchParams.set('key', key);
+      const res = await fetch(url.toString());
+      if (!res.ok) break;
+      const data = await res.json();
+      (data.items||[]).forEach(it => ids.push(it.contentDetails.videoId));
+      if (!data.nextPageToken) break;
+      pageToken = data.nextPageToken;
+    }
+    return ids;
+  }
+
+  function onPlayerReady(){
+    if (shuffled.length){
+      player.loadPlaylist(shuffled, 0, 0);
+      player.playVideo();
+    }else{
+      const randomIndex = Math.floor(Math.random()*25);
+      player.cuePlaylist({ listType: 'playlist', list: LIST_ID, index: randomIndex });
+      if (autoplay) player.playVideo();
+    }
+  }
+
+  function onStateChange(e){
+    if (e.data === YT.PlayerState.ENDED && shuffled.length){
+      pos = (player.getPlaylistIndex()+1) % shuffled.length;
+      player.playVideoAt(pos);
+    }
+  }
+
+  window.onYouTubeIframeAPIReady = async function(){
+    if (apiKey){
+      try{
+        const ids = await fetchAllVideoIds(LIST_ID, apiKey);
+        shuffled = shuffleArray(ids.slice());
+      }catch(e){ shuffled = []; }
+    }
+    player = new YT.Player('player', {
+      width: '100%',
+      height: '100%',
+      playerVars: { controls: 1, rel: 0, autoplay: autoplay, mute: muted, loop: 1 },
+      events: { 'onReady': onPlayerReady, 'onStateChange': onStateChange }
+    });
+  };
+  </script>
+</body>
+</html>
