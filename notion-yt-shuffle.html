@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>YouTube Playlist – Shuffle Player</title>
+  <style>
+    html,body{height:100%;margin:0}
+    .wrap{position:relative; height:100vh; max-height:100vh; overflow:hidden; background:#000}
+    #player{position:absolute; inset:0}
+    .unmute{
+      position:absolute; right:12px; bottom:12px; z-index:10;
+      padding:10px 14px; border:0; border-radius:10px; background:#fff; cursor:pointer;
+      font:600 14px/1.2 system-ui, -apple-system, Segoe UI, Roboto, 'Noto Sans KR', 'Apple SD Gothic Neo', sans-serif;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div id="player"></div>
+    <button class="unmute" id="unmuteBtn" aria-label="사운드 켜기">🔊 사운드 켜기</button>
+  </div>
+
+  <!-- 1) YouTube IFrame API 로드 -->
+  <script src="https://www.youtube.com/iframe_api"></script>
+  <script>
+    const PLAYLIST_ID = "PLnFUOWlSpN_i-z2lMeFlo4rvYzlS4g6it"; // ← 여기만 교체
+
+    let player;
+    // 2) API 로드 후 자동 호출됨
+    function onYouTubeIframeAPIReady() {
+      player = new YT.Player('player', {
+        width: '100%',
+        height: '100%',
+        playerVars: {
+          // playlist 로 바로 로드
+          listType: 'playlist',
+          list: PLAYLIST_ID,
+          // UX 옵션
+          autoplay: 1,         // 자동재생 (브라우저 정책상 음소거 필요)
+          controls: 1,
+          modestbranding: 1,
+          rel: 0,
+          // 임베드 출처 명시(권장)
+          origin: window.location.origin
+        },
+        events: {
+          'onReady': onPlayerReady
+        }
+      });
+    }
+
+    // 3) 준비되면 셔플 켜고 재생
+    function onPlayerReady() {
+      try {
+        player.mute();                // 자동재생 허용을 위해 우선 음소거
+        player.setShuffle(true);      // ★ 셔플 활성화
+        player.playVideo();
+      } catch (e) {
+        console.warn(e);
+      }
+    }
+
+    // 4) 사용자 클릭으로 음소거 해제
+    document.getElementById('unmuteBtn').addEventListener('click', () => {
+      if (!player) return;
+      player.unMute();
+      // 버튼 숨김
+      document.getElementById('unmuteBtn').style.display = 'none';
+    });
+  </script>
+</body>
+</html>
