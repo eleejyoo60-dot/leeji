@@ -39,25 +39,27 @@
   <iframe id="player" allow="autoplay" allowfullscreen></iframe>
 
   <script>
-    const qs = new URLSearchParams(location.search);
-    const list   = qs.get('list') || 'YOUR_PLAYLIST_ID';
-    const bg     = qs.get('bg');
-    const title  = qs.get('title') || '';
-    const cover  = qs.get('cover');
-    const hQuery = qs.get('h') || qs.get('coverH'); // accepts "320", "280px", "30vh"
+  // URL 파라미터로 바꿀 수 있는 옵션들 (커버/제목/배경/높이)
+  const qs     = new URLSearchParams(location.search);
+  const bg     = qs.get('bg');
+  const title  = qs.get('title') || '';
+  const cover  = qs.get('cover');
+  const hQuery = qs.get('h') || qs.get('coverH'); // "320" / "280px" / "30vh"
 
-    if (bg) document.documentElement.style.setProperty('--bg', '#' + bg.replace('#',''));
-    if (title) document.getElementById('title').textContent = title;
-    if (cover) document.getElementById('cover').style.backgroundImage = `url(${cover})`;
+  // ✅ 네 플레이리스트 ID만 여기 한 번 적기 (하드코딩)
+  const list = "PLnFUOWlSpN_i-z2lMeFlo4rvYzlS4g6it&index=15";
 
-    if (hQuery) {
-      const v = (''+hQuery).trim();
-      const val = /vh|px$/.test(v) ? v : `${parseInt(v,10)||240}px`;
-      document.documentElement.style.setProperty('--coverH', val);
-    }
+  // 스타일 적용
+  if (bg)    document.documentElement.style.setProperty('--bg', '#' + bg.replace('#',''));
+  if (title) document.getElementById('title').textContent = title;
+  if (cover) document.getElementById('cover').style.backgroundImage = `url(${cover})`;
+  if (hQuery){
+    const v = (''+hQuery).trim();
+    const val = /vh|px$/.test(v) ? v : `${parseInt(v,10)||240}px`;
+    document.documentElement.style.setProperty('--coverH', val);
+  }
 
-    const src = `https://www.youtube.com/embed/videoseries?list=${PLnFUOWlSpN_i-PLnFUOWlSpN_i-PLnFUOWlSpN_i-PLnFUOWlSpN_i-z2lMeFlo4rvYzlS4g6it(list)}&autoplay=1&mute=1&loop=1&controls=1&rel=0`;
-    document.getElementById('player').src = src;
-  </script>
-</body>
-</html>
+  // 유튜브 임베드 URL (백틱 + ${encodeURIComponent(list)}만 사용)
+  const src = `https://www.youtube.com/embed/videoseries?list=${encodeURIComponent(list)}&autoplay=1&mute=1&loop=1&controls=1&rel=0`;
+  document.getElementById('player').src = src;
+</script>
