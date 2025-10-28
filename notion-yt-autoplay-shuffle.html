@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>YouTube Playlist — Autoplay + Shuffle (Minimal)</title>
+  <style>
+    html,body{margin:0;height:100%;background:#000}
+    #player{width:100%;height:100%;border:0}
+  </style>
+</head>
+<body>
+  <div id="player"></div>
+
+  <script>
+    const qs = new URLSearchParams(location.search);
+    const list = qs.get('list'); // ← 필수: 플레이리스트 ID (PL로 시작)
+    if (!list) {
+      document.body.innerHTML =
+        '<p style="color:#fff;font:16px/1.6 -apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Noto Sans KR,Apple SD Gothic Neo,sans-serif;padding:24px;">필수 파라미터 없음: <b>list</b><br>예) ?list=PLxxxxxxxx</p>';
+    }
+
+    // 기본값: 노션/모바일 자동재생 위해 mute=1 권장
+    const autoplay = qs.get('autoplay') === '0' ? 0 : 1;
+    const mute     = qs.get('mute')     === '0' ? 0 : 1;
+    const controls = qs.get('controls') === '0' ? 0 : 1;
+    const loop     = qs.get('loop')     === '0' ? 0 : 1;
+
+    // YouTube IFrame API 로드
+    const tag = document.createElement('script');
+    tag.src = "https://www.youtube.com/iframe_api";
+    document.head.appendChild(tag);
+
+    let player;
+
+    // IFrame API 콜백
+    window.onYouTubeIframeAPIReady = function(){
+      player = new YT.Player('player', {
+        width: '100%', height: '100%',
+        playerVars: {
+          listType: 'playlist',
+          list: list,
+          autoplay: autoplay,
+          mute: mute,
+          controls: controls,
+          loop: loop,
+          rel: 0,
+          modestbranding: 1,
+          fs: 0,
+          playsinline: 1,
+          iv_load_policy: 3,
+          disablekb: 0
+        },
+        events: {
+          onReady: onPlayerReady
+        }
+      });
+    };
+
+    function onPlayerReady(){
+      // 1) 공식 셔플 시도
+      try { if (player.setShuffle) player.setShuffle(true); } catch(e){}
+
+      // 2) 보조책: 랜덤 시작 인덱스
+      try {
+        const rnd = Math.floor(Math.random() * 25);
+        if (player.cuePlaylist) {
+          player.cuePlaylist({ listType:'playlist', list:list, index:rnd });
+          if (autoplay) player.playVideo();
+        }
+      } catch (e) {
+        // 실패해도 기본 load로 재생됨
+      }
+
+      // 자동재생 보조: mute면 정책상 자동재생 성공률 ↑
+      if (autoplay && mute && player.playVideo) {
+        try { player.playVideo(); } catch(e){}
+      }
+    }
+  </script>
+</body>
+</html>
